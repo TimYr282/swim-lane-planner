@@ -1,15 +1,15 @@
 
 import React from 'react';
-import Dashboard from '@/components/Dashboard';
+import GroupsList from '@/components/groups/GroupsList';
 import Navbar from '@/components/Navbar';
 
-const Index = () => {
+const Groups = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <Dashboard />
+      <GroupsList />
     </div>
   );
 };
 
-export default Index;
+export default Groups;

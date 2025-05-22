@@ -1,15 +1,15 @@
 
 import React from 'react';
-import Dashboard from '@/components/Dashboard';
+import CalendarView from '@/components/calendar/CalendarView';
 import Navbar from '@/components/Navbar';
 
-const Index = () => {
+const Calendar = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <Dashboard />
+      <CalendarView />
     </div>
   );
 };
 
-export default Index;
+export default Calendar;
