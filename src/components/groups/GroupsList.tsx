@@ -105,7 +105,10 @@ const GroupCard = ({ group }: GroupCardProps) => {
           <span className="text-sm font-medium">Members</span>
           <span className="text-sm text-muted-foreground">{group.memberCount}/{capacity}</span>
         </div>
-        <Progress value={fillPercentage} className="h-2 mb-4" indicatorClassName={`bg-${group.color}`} />
+        <Progress 
+          value={fillPercentage} 
+          className={`h-2 mb-4 bg-gray-200 [&>div]:bg-${group.color}`} 
+        />
         
         <div className="mb-4">
           <p className="text-sm font-medium">Coach</p>
