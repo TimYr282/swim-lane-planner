@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from '@/components/ui/button';
@@ -19,12 +18,31 @@ const INITIAL_ATHLETES = [
   { id: 6, name: "Jordan Lee", age: 18, group: "Senior A", specialties: ["Sprint", "Backstroke"], image: "/placeholder.svg" },
 ];
 
+const STORAGE_KEY = 'swimming-app-athletes';
+
 const AthletesList = () => {
-  const [athletes, setAthletes] = useState<Athlete[]>(INITIAL_ATHLETES);
+  const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [currentAthlete, setCurrentAthlete] = useState<Athlete | undefined>(undefined);
+  
+  // Load athletes from localStorage on initial render
+  useEffect(() => {
+    const savedAthletes = localStorage.getItem(STORAGE_KEY);
+    if (savedAthletes) {
+      setAthletes(JSON.parse(savedAthletes));
+    } else {
+      setAthletes(INITIAL_ATHLETES);
+    }
+  }, []);
+  
+  // Save athletes to localStorage whenever they change
+  useEffect(() => {
+    if (athletes.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(athletes));
+    }
+  }, [athletes]);
   
   const filteredAthletes = athletes.filter(athlete => 
     athlete.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

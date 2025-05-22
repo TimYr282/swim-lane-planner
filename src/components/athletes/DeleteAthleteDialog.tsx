@@ -30,7 +30,7 @@ const DeleteAthleteDialog: React.FC<DeleteAthleteDialogProps> = ({
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Athlete</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete {athleteName}? This action cannot be undone.
+            Are you sure you want to delete {athleteName}? This action cannot be undone and all data will be permanently lost.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

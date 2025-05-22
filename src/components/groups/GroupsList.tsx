@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from '@/components/ui/button';
@@ -53,6 +52,8 @@ const INITIAL_GROUPS = [
   },
 ];
 
+const STORAGE_KEY = 'swimming-app-groups';
+
 export interface Group {
   id: number;
   name: string;
@@ -71,11 +72,28 @@ interface GroupCardProps {
 }
 
 const GroupsList = () => {
-  const [groups, setGroups] = useState<Group[]>(INITIAL_GROUPS);
+  const [groups, setGroups] = useState<Group[]>([]);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [currentGroup, setCurrentGroup] = useState<Group | null>(null);
+
+  // Load groups from localStorage on initial render
+  useEffect(() => {
+    const savedGroups = localStorage.getItem(STORAGE_KEY);
+    if (savedGroups) {
+      setGroups(JSON.parse(savedGroups));
+    } else {
+      setGroups(INITIAL_GROUPS);
+    }
+  }, []);
+  
+  // Save groups to localStorage whenever they change
+  useEffect(() => {
+    if (groups.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
+    }
+  }, [groups]);
 
   // Generate a new ID for a group
   const getNewId = () => {
