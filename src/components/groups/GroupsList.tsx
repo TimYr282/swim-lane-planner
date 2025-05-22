@@ -1,13 +1,16 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from '@/components/ui/button';
-import { Users, ChevronRight } from 'lucide-react';
+import { Users, ChevronRight, Plus, Pencil, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { GroupDialog, GroupFormValues } from './GroupDialog';
+import DeleteGroupDialog from './DeleteGroupDialog';
+import { toast } from "@/hooks/use-toast";
 
-// Mock groups data
-const GROUPS = [
+// Initial mock groups data
+const INITIAL_GROUPS = [
   { 
     id: 1, 
     name: "Senior A", 
@@ -50,26 +53,7 @@ const GROUPS = [
   },
 ];
 
-const GroupsList = () => {
-  return (
-    <div className="container mx-auto py-6 px-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-swimming-800">Training Groups</h1>
-        <Button className="bg-swimming-600 hover:bg-swimming-700">
-          <Users className="mr-2 h-4 w-4" /> Create Group
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {GROUPS.map((group) => (
-          <GroupCard key={group.id} group={group} />
-        ))}
-      </div>
-    </div>
-  );
-};
-
-interface Group {
+export interface Group {
   id: number;
   name: string;
   description: string;
@@ -82,9 +66,159 @@ interface Group {
 
 interface GroupCardProps {
   group: Group;
+  onEdit: (group: Group) => void;
+  onDelete: (group: Group) => void;
 }
 
-const GroupCard = ({ group }: GroupCardProps) => {
+const GroupsList = () => {
+  const [groups, setGroups] = useState<Group[]>(INITIAL_GROUPS);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [currentGroup, setCurrentGroup] = useState<Group | null>(null);
+
+  // Generate a new ID for a group
+  const getNewId = () => {
+    return Math.max(0, ...groups.map(group => group.id)) + 1;
+  };
+
+  // Color scheme based on group position
+  const getGroupColor = (index: number) => {
+    const colors = ["swimming-700", "swimming-600", "swimming-500", "swimming-400"];
+    return colors[index % colors.length];
+  };
+
+  // Handle creating a new group
+  const handleCreateGroup = (values: GroupFormValues) => {
+    const newGroup: Group = {
+      id: getNewId(),
+      name: values.name,
+      description: values.description,
+      memberCount: 0, // New groups start with 0 members
+      ageRange: values.ageRange,
+      coachName: values.coachName,
+      sessions: values.sessions.split('\n').filter(s => s.trim() !== ''),
+      color: getGroupColor(groups.length)
+    };
+    
+    setGroups([...groups, newGroup]);
+    toast({
+      title: "Group Created",
+      description: `${newGroup.name} has been successfully created.`
+    });
+  };
+
+  // Handle editing a group
+  const handleEditGroup = (values: GroupFormValues) => {
+    if (!currentGroup) return;
+    
+    setGroups(groups.map(group => 
+      group.id === currentGroup.id 
+        ? {
+            ...group,
+            name: values.name,
+            description: values.description,
+            ageRange: values.ageRange,
+            coachName: values.coachName,
+            sessions: values.sessions.split('\n').filter(s => s.trim() !== '')
+          }
+        : group
+    ));
+    
+    toast({
+      title: "Group Updated",
+      description: `${values.name} has been successfully updated.`
+    });
+  };
+
+  // Handle deleting a group
+  const handleDeleteGroup = () => {
+    if (!currentGroup) return;
+    
+    setGroups(groups.filter(group => group.id !== currentGroup.id));
+    setDeleteDialogOpen(false);
+    
+    toast({
+      title: "Group Deleted",
+      description: `${currentGroup.name} has been removed.`,
+      variant: "destructive"
+    });
+  };
+
+  // Start the edit process for a group
+  const startEdit = (group: Group) => {
+    setCurrentGroup(group);
+    setEditDialogOpen(true);
+  };
+
+  // Start the delete process for a group
+  const startDelete = (group: Group) => {
+    setCurrentGroup(group);
+    setDeleteDialogOpen(true);
+  };
+
+  return (
+    <div className="container mx-auto py-6 px-4">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-swimming-800">Training Groups</h1>
+        <Button 
+          className="bg-swimming-600 hover:bg-swimming-700"
+          onClick={() => setCreateDialogOpen(true)}
+        >
+          <Plus className="mr-2 h-4 w-4" /> Create Group
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {groups.map((group) => (
+          <GroupCard 
+            key={group.id} 
+            group={group} 
+            onEdit={startEdit} 
+            onDelete={startDelete}
+          />
+        ))}
+      </div>
+      
+      {/* Create Group Dialog */}
+      <GroupDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSubmit={handleCreateGroup}
+        title="Create New Group"
+      />
+      
+      {/* Edit Group Dialog */}
+      {currentGroup && (
+        <GroupDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          onSubmit={handleEditGroup}
+          defaultValues={{
+            name: currentGroup.name,
+            description: currentGroup.description,
+            ageRange: currentGroup.ageRange,
+            coachName: currentGroup.coachName,
+            sessions: currentGroup.sessions.join('\n')
+          }}
+          title="Edit Group"
+        />
+      )}
+      
+      {/* Delete Confirmation Dialog */}
+      {currentGroup && (
+        <DeleteGroupDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          onConfirm={handleDeleteGroup}
+          groupName={currentGroup.name}
+        />
+      )}
+    </div>
+  );
+};
+
+const GroupCard = ({ group, onEdit, onDelete }: GroupCardProps) => {
   const capacity = 25; // Assumed max capacity
   const fillPercentage = (group.memberCount / capacity) * 100;
   
@@ -93,10 +227,30 @@ const GroupCard = ({ group }: GroupCardProps) => {
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
           <CardTitle className="text-xl">{group.name}</CardTitle>
-          <Badge variant="outline" className="text-swimming-700 border-swimming-300">
-            {group.ageRange} yrs
-          </Badge>
+          <div className="flex space-x-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0" 
+              onClick={() => onEdit(group)}
+            >
+              <Pencil className="h-4 w-4" />
+              <span className="sr-only">Edit</span>
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive" 
+              onClick={() => onDelete(group)}
+            >
+              <Trash2 className="h-4 w-4" />
+              <span className="sr-only">Delete</span>
+            </Button>
+          </div>
         </div>
+        <Badge variant="outline" className="text-swimming-700 border-swimming-300 w-fit">
+          {group.ageRange} yrs
+        </Badge>
       </CardHeader>
       <CardContent>
         <p className="text-muted-foreground mb-4">{group.description}</p>
