@@ -3,11 +3,14 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from '@/components/ui/button';
-import { User, Search, Plus, Filter } from 'lucide-react';
+import { User, Search, Plus, Filter, Pencil, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { toast } from '@/hooks/use-toast';
+import AthleteDialog, { Athlete } from './AthleteDialog';
+import DeleteAthleteDialog from './DeleteAthleteDialog';
 
 // Mock data
-const ATHLETES = [
+const INITIAL_ATHLETES = [
   { id: 1, name: "Alex Johnson", age: 16, group: "Senior A", specialties: ["Freestyle", "Butterfly"], image: "/placeholder.svg" },
   { id: 2, name: "Sam Williams", age: 14, group: "Junior A", specialties: ["Butterfly", "IM"], image: "/placeholder.svg" },
   { id: 3, name: "Jamie Parker", age: 17, group: "Senior A", specialties: ["Backstroke", "Freestyle"], image: "/placeholder.svg" },
@@ -17,13 +20,71 @@ const ATHLETES = [
 ];
 
 const AthletesList = () => {
+  const [athletes, setAthletes] = useState<Athlete[]>(INITIAL_ATHLETES);
   const [searchTerm, setSearchTerm] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [currentAthlete, setCurrentAthlete] = useState<Athlete | undefined>(undefined);
   
-  const filteredAthletes = ATHLETES.filter(athlete => 
+  const filteredAthletes = athletes.filter(athlete => 
     athlete.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     athlete.group.toLowerCase().includes(searchTerm.toLowerCase()) ||
     athlete.specialties.some(specialty => specialty.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  const handleAddClick = () => {
+    setCurrentAthlete(undefined);
+    setDialogOpen(true);
+  };
+
+  const handleEditClick = (athlete: Athlete) => {
+    setCurrentAthlete(athlete);
+    setDialogOpen(true);
+  };
+
+  const handleDeleteClick = (athlete: Athlete) => {
+    setCurrentAthlete(athlete);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleSaveAthlete = (data: Partial<Athlete>) => {
+    if (data.id) {
+      // Update existing athlete
+      setAthletes(prevAthletes => 
+        prevAthletes.map(a => a.id === data.id ? { ...a, ...data } as Athlete : a)
+      );
+      toast({
+        title: "Athlete Updated",
+        description: `${data.name} was successfully updated.`
+      });
+    } else {
+      // Add new athlete
+      const newAthlete = {
+        ...data,
+        id: Math.max(0, ...athletes.map(a => a.id)) + 1,
+      } as Athlete;
+      
+      setAthletes(prevAthletes => [...prevAthletes, newAthlete]);
+      toast({
+        title: "Athlete Added",
+        description: `${data.name} was added successfully.`
+      });
+    }
+  };
+
+  const handleDeleteAthlete = () => {
+    if (currentAthlete) {
+      setAthletes(prevAthletes => 
+        prevAthletes.filter(a => a.id !== currentAthlete.id)
+      );
+      toast({
+        title: "Athlete Deleted",
+        description: `${currentAthlete.name} was removed successfully.`,
+        variant: "destructive"
+      });
+    }
+    setDeleteDialogOpen(false);
+  };
 
   return (
     <div className="container mx-auto py-6 px-4">
@@ -39,7 +100,7 @@ const AthletesList = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Button className="bg-swimming-600 hover:bg-swimming-700">
+          <Button className="bg-swimming-600 hover:bg-swimming-700" onClick={handleAddClick}>
             <Plus className="mr-2 h-4 w-4" /> Add Athlete
           </Button>
         </div>
@@ -47,7 +108,12 @@ const AthletesList = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredAthletes.map((athlete) => (
-          <AthleteCard key={athlete.id} athlete={athlete} />
+          <AthleteCard 
+            key={athlete.id} 
+            athlete={athlete} 
+            onEdit={() => handleEditClick(athlete)}
+            onDelete={() => handleDeleteClick(athlete)}
+          />
         ))}
       </div>
 
@@ -58,24 +124,31 @@ const AthletesList = () => {
           <p className="text-muted-foreground">Try adjusting your search or filters</p>
         </div>
       )}
+      
+      <AthleteDialog 
+        open={dialogOpen} 
+        onOpenChange={setDialogOpen} 
+        athlete={currentAthlete} 
+        onSave={handleSaveAthlete} 
+      />
+      
+      <DeleteAthleteDialog 
+        open={deleteDialogOpen} 
+        onOpenChange={setDeleteDialogOpen} 
+        onConfirm={handleDeleteAthlete} 
+        athleteName={currentAthlete?.name || ''} 
+      />
     </div>
   );
 };
 
-interface Athlete {
-  id: number;
-  name: string;
-  age: number;
-  group: string;
-  specialties: string[];
-  image: string;
-}
-
 interface AthleteCardProps {
   athlete: Athlete;
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
-const AthleteCard = ({ athlete }: AthleteCardProps) => {
+const AthleteCard = ({ athlete, onEdit, onDelete }: AthleteCardProps) => {
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
       <div className="h-40 bg-swimming-100 flex items-center justify-center overflow-hidden">
@@ -94,9 +167,14 @@ const AthleteCard = ({ athlete }: AthleteCardProps) => {
             <p className="text-sm text-muted-foreground">Age: {athlete.age}</p>
             <p className="text-sm text-muted-foreground">Group: {athlete.group}</p>
           </div>
-          <Button variant="outline" size="sm" className="ml-4">
-            <User className="mr-1 h-4 w-4" /> Profile
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={onEdit}>
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={onDelete} className="text-destructive hover:text-destructive">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           {athlete.specialties.map((specialty, index) => (
